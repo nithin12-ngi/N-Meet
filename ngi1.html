@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>N Meet | NGI</title>
+    <script src='https://8x8.vc/external_api.js'></script>
+    <style>
+        :root { --ngi-blue: #3b82f6; --ngi-bg: #09090b; --ngi-surface: #18181b; --ngi-border: #27272a; --on-green: #10b981; --off-red: #ef4444; }
+        body, html { margin: 0; padding: 0; height: 100%; background: var(--ngi-bg); color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
+        #app-container { display: flex; height: 100vh; width: 100vw; }
+        
+        /* Sidebar System */
+        .sidebar { width: 340px; background: var(--ngi-surface); border-right: 1px solid var(--ngi-border); display: flex; flex-direction: column; z-index: 100; }
+        .sidebar-header { padding: 20px; font-size: 20px; font-weight: 900; border-bottom: 1px solid var(--ngi-border); display: flex; justify-content: space-between; align-items: center;}
+        .scroll-area { overflow-y: auto; flex: 1; padding: 10px 0; }
+        
+        .cat-title { font-size: 10px; text-transform: uppercase; color: var(--ngi-blue); margin: 20px 20px 8px; font-weight: 900; letter-spacing: 1px; }
+        
+        /* Smart Buttons */
+        .f-btn { background: #27272a; color: white; border: 1px solid #3f3f46; width: 90%; margin: 0 5% 8px; padding: 12px; border-radius: 8px; text-align: left; cursor: pointer; font-size: 13px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; transition: 0.2s; }
+        .f-btn:hover { border-color: var(--ngi-blue); }
+        .btn-status { font-size: 10px; padding: 3px 8px; border-radius: 4px; background: #3f3f46; color: white; }
+        .btn-on .btn-status { background: var(--on-green); color: black; }
+        .btn-off .btn-status { background: var(--off-red); color: white; }
+
+        /* Master Mode Buttons */
+        .mode-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; padding: 0 15px; margin-bottom: 10px; }
+        .mode-btn { background: #27272a; border: 1px solid #3f3f46; color: white; padding: 15px 5px; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: bold; text-align: center; }
+        .mode-btn:hover, .mode-active { background: var(--ngi-blue); border-color: var(--ngi-blue); }
+
+        /* Workspace & Overlays */
+        .workspace { flex: 1; position: relative; background: #000; display: flex; flex-direction: column; }
+        #meet-container { flex: 1; width: 100%; transition: filter 0.3s; }
+        
+        /* UI Panels */
+        #timer-display { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); background: var(--off-red); padding: 8px 20px; border-radius: 8px; font-weight: bold; font-size: 14px; z-index: 10000; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .ngi-panel { position: absolute; top: 60px; right: 20px; width: 320px; background: rgba(24, 24, 27, 0.9); backdrop-filter: blur(15px); border: 1px solid var(--ngi-blue); border-radius: 12px; z-index: 9999; display: none; flex-direction: column; box-shadow: 0 10px 30px rgba(0,0,0,0.7); }
+        .p-header { background: var(--ngi-blue); padding: 10px; font-size: 11px; font-weight: bold; border-radius: 11px 11px 0 0; display: flex; justify-content: space-between; cursor: move; }
+        .p-body { padding: 15px; font-size: 12px; max-height: 250px; overflow-y: auto; }
+        .p-body label { font-size:10px; color:var(--ngi-blue); font-weight:bold; display:block; margin-bottom:4px; margin-top:8px; }
+        .p-body input { width:100%; box-sizing:border-box; background:#18181b; color:white; border:1px solid var(--ngi-border); padding:8px; border-radius:4px; font-family:sans-serif; }
+        
+        #wm-layer { position: absolute; inset: 0; pointer-events: none; z-index: 9998; display: flex; align-items: center; justify-content: center; opacity: 0.15; }
+    </style>
+</head>
+<body>
+
+    <div id="app-container">
+        <div class="sidebar">
+            <div class="sidebar-header">N Meet <span>v1.0</span></div>
+            <div class="scroll-area">
+                
+                <div class="cat-title">1. OPERATION MODES</div>
+                <div class="mode-grid">
+                    <button class="mode-btn mode-active" id="mode-meeting" onclick="setMode('meeting')">🤝 Meeting</button>
+                    <button class="mode-btn" id="mode-webinar" onclick="setMode('webinar')">🎭 Webinar</button>
+                    <button class="mode-btn" id="mode-interview" onclick="setMode('interview')">🔒 Interview</button>
+                </div>
+
+                <div class="cat-title">2. STREAM CONTROLS</div>
+                <button class="f-btn btn-on" id="btn-mic" onclick="toggleFeature('mic', 'toggleAudio')">Microphone <span class="btn-status">ON</span></button>
+                <button class="f-btn btn-on" id="btn-cam" onclick="toggleFeature('cam', 'toggleVideo')">Camera <span class="btn-status">ON</span></button>
+                <button class="f-btn btn-off" id="btn-screen" onclick="toggleFeature('screen', 'toggleShareScreen')">Screen Share <span class="btn-status">OFF</span></button>
+                <button class="f-btn btn-off" id="btn-lobby" onclick="toggleFeature('lobby', 'toggleLobby')">Waiting Room <span class="btn-status">OFF</span></button>
+
+                <div class="cat-title">3. NEURAL & COLLAB TOOLS</div>
+                <button class="f-btn btn-off" id="btn-ai" onclick="toggleAI()">Neural Auto-Notes <span class="btn-status">OFF</span></button>
+                <button class="f-btn btn-off" id="btn-wb" onclick="toggleWhiteboard()">Shared Whiteboard <span class="btn-status">OFF</span></button>
+                <button class="f-btn btn-off" id="btn-light" onclick="toggleLighting()">AI Studio Light <span class="btn-status">OFF</span></button>
+                <button class="f-btn btn-off" id="btn-blur" onclick="toggleFeature('blur', 'toggleBackgroundBlur')">Portrait Blur <span class="btn-status">OFF</span></button>
+                
+                <div class="cat-title">4. HOST ACTIONS</div>
+                <button class="f-btn" onclick="toggleP('invite-panel')" style="border-color:var(--ngi-blue); color:var(--ngi-blue);">Schedule & Share Invite 📅</button>
+                <button class="f-btn" onclick="api.executeCommand('muteEveryone')" style="border-color:#eab308; color:#eab308;">Force Mute All 🔇</button>
+                <button class="f-btn" onclick="downloadAttendance()" style="border-color:#10b981; color:#10b981;">Download Attendance 📥</button>
+                
+                <div style="margin-top:20px; padding:0 5%;">
+                    <button style="width:100%; background:var(--off-red); color:white; padding:15px; border:none; border-radius:8px; font-weight:bold; cursor:pointer;" onclick="endSessionForAll()">END SESSION FOR ALL 🛑</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="workspace">
+            <div id="timer-display">Initializing Engine...</div>
+            <div id="wm-layer"></div>
+
+            <!-- Zoom-Style Scheduling Panel -->
+            <div id="invite-panel" class="ngi-panel">
+                <div class="p-header" onmousedown="drag(this)"><span>📅 SCHEDULE WEBINAR</span> <span style="cursor:pointer;" onclick="toggleP('invite-panel')">X</span></div>
+                <div class="p-body">
+                    <label>HOST NAME</label>
+                    <input type="text" id="inv-host" value="CEO Nithin">
+                    <label>WEBINAR TOPIC</label>
+                    <input type="text" id="inv-topic" placeholder="e.g. NGI Tech Summit">
+                    <label>DATE & TIME</label>
+                    <input type="text" id="inv-time" placeholder="e.g. May 3, 4:00 PM IST">
+                    
+                    <button onclick="copyZoomInvite()" style="width:100%; margin-top:15px; padding:10px; background:var(--ngi-blue); color:white; border:none; border-radius:6px; cursor:pointer; font-weight:bold;">Generate & Copy Invite</button>
+                </div>
+            </div>
+
+            <!-- Lighting Panel -->
+            <div id="light-panel" class="ngi-panel">
+                <div class="p-header" onmousedown="drag(this)"><span>💡 AI LIGHTING SENSOR</span> <span style="cursor:pointer;" onclick="toggleLighting()">X</span></div>
+                <div class="p-body">
+                    <input type="range" min="50" max="200" value="100" style="width:100%; margin-top:5px; accent-color:var(--ngi-blue);" oninput="document.getElementById('meet-container').style.filter=`brightness(${this.value}%)`">
+                </div>
+            </div>
+
+            <!-- AI Transcript Panel -->
+            <div id="ai-panel" class="ngi-panel">
+                <div class="p-header" onmousedown="drag(this)"><span>🔴 NEURAL TRANSCRIPTION</span> <span style="cursor:pointer;" onclick="toggleAI()">X</span></div>
+                <div class="p-body" id="ai-text" style="font-family:monospace; color:#d4d4d8;">Engine standing by...</div>
+            </div>
+
+            <div id="meet-container"></div>
+        </div>
+    </div>
+
+    <script>
+        let api = null;
+        
+        // ==========================================
+        // ⚠️ CRITICAL SETUP: UPDATE THESE 3 URLs ⚠️
+        // ==========================================
+        const JAAS_APP_ID = "vpaas-magic-cookie-60b6a87bcecd445f8ec8c8ec97295f45"; 
+        const DATABASE_URL = "https://script.google.com/macros/s/AKfycbwVfRRwz3Egc0YMKH4YYfpsttS7D764c7b9pmBScuJ7MX3cLplYtrzX0IJA6Z1prcCl/exec"; 
+        const BLOGGER_URL = "http://ngimeet.blogspot.com"; 
+        // ==========================================
+        
+        // Read URL params (from Blogger Paywall routing)
+        const params = new URLSearchParams(window.location.search);
+        const roomName = params.get('room') || "NGI-Master-Suite";
+        const limitMins = parseInt(params.get('limit')) || 45; // Default 45 mins
+
+        // UI State Tracker for Smart Buttons
+        let state = { mic: true, cam: true, screen: false, lobby: false, ai: false, wb: false, light: false, blur: false };
+
+        window.onload = () => {
+            api = new JitsiMeetExternalAPI('8x8.vc', {
+                roomName: JAAS_APP_ID + "/" + roomName,
+                width: '100%', height: '100%',
+                parentNode: document.querySelector('#meet-container'),
+                configOverwrite: { 
+                    prejoinPageEnabled: false, 
+                    whiteboard: { enabled: true } 
+                },
+                interfaceConfigOverwrite: { SHOW_JITSI_WATERMARK: false, APP_NAME: 'N Meet' }
+            });
+            startEngineTimer(limitMins);
+        };
+
+        // --- 1. THE ZOOM-STYLE INVITE GENERATOR ---
+        function copyZoomInvite() {
+            const host = document.getElementById('inv-host').value || "CEO Nithin";
+            const topic = document.getElementById('inv-topic').value || "NGI Masterclass";
+            const time = document.getElementById('inv-time').value || "TBD";
+            
+            // Protects the raw Vercel link by sending users to Blogger first
+            const inviteLink = `${BLOGGER_URL}?room=${roomName}`;
+
+            const inviteText = `🚀 NGI ENTERPRISE ECOSYSTEM\n\n${host} is inviting you to a scheduled N Meet Session.\n\n📌 Topic: ${topic}\n⏰ Time: ${time}\n\nJoin the Session Here:\n🔗 ${inviteLink}\n\nNote: Please complete the access check at the portal to enter the secure room.`;
+
+            navigator.clipboard.writeText(inviteText);
+            alert("Professional Invite Copied to Clipboard!\n\nYou can now paste this into WhatsApp, Email, or Telegram.");
+            toggleP('invite-panel'); 
+        }
+
+        // --- 2. SMART OPERATION MODES ---
+        function setMode(mode) {
+            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('mode-active'));
+            document.getElementById('mode-' + mode).classList.add('mode-active');
+
+            if(mode === 'meeting') {
+                alert("Meeting Mode: Open floor, grid view active, lobby disabled.");
+                if(state.lobby) toggleFeature('lobby', 'toggleLobby');
+                api.executeCommand('setTileView', true);
+            } else if(mode === 'webinar') {
+                alert("Webinar Mode: Stage locked to Host. Everyone else muted. Grid view off.");
+                api.executeCommand('muteEveryone');
+                api.executeCommand('setTileView', false);
+                api.executeCommand('setFollowMe', true); // Forces everyone to see host
+                if(state.lobby) toggleFeature('lobby', 'toggleLobby');
+            } else if(mode === 'interview') {
+                alert("Interview Mode: Waiting Room (Lobby) activated. Admit candidates one by one.");
+                if(!state.lobby) toggleFeature('lobby', 'toggleLobby');
+                api.executeCommand('setTileView', false);
+            }
+        }
+
+        // --- 3. DYNAMIC TOGGLES ---
+        function toggleFeature(feat, cmd) {
+            state[feat] = !state[feat];
+            if(cmd) api.executeCommand(cmd);
+            updateBtnUI(feat);
+        }
+
+        function updateBtnUI(feat) {
+            const btn = document.getElementById('btn-' + feat);
+            const statusSpan = btn.querySelector('.btn-status');
+            if(state[feat]) {
+                btn.classList.replace('btn-off', 'btn-on'); statusSpan.innerText = "ON";
+            } else {
+                btn.classList.replace('btn-on', 'btn-off'); statusSpan.innerText = "OFF";
+            }
+        }
+
+        function toggleP(id) { 
+            const el = document.getElementById(id);
+            el.style.display = (el.style.display === 'flex') ? 'none' : 'flex';
+        }
+
+        function toggleWhiteboard() { state.wb = !state.wb; api.executeCommand('toggleWhiteboard'); updateBtnUI('wb'); }
+        function toggleLighting() { state.light = !state.light; document.getElementById('light-panel').style.display = state.light ? 'flex' : 'none'; if(!state.light) document.getElementById('meet-container').style.filter = "none"; updateBtnUI('light'); }
+
+        let aiRec = null;
+        function toggleAI() {
+            state.ai = !state.ai;
+            document.getElementById('ai-panel').style.display = state.ai ? 'flex' : 'none';
+            updateBtnUI('ai');
+
+            if(state.ai) {
+                aiRec = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+                aiRec.continuous = true; aiRec.lang = 'en-IN';
+                aiRec.onresult = (e) => {
+                    const txt = e.results[e.results.length - 1][0].transcript;
+                    const box = document.getElementById('ai-text');
+                    if(box.innerText.includes("Engine")) box.innerText = "";
+                    box.innerHTML += `<div style="margin-bottom:8px; border-left:2px solid var(--ngi-blue); padding-left:10px;">${txt}</div>`;
+                    box.scrollTop = box.scrollHeight;
+                    // Syncs directly to your Google Sheet database
+                    if(DATABASE_URL.includes("macros")) fetch(`${DATABASE_URL}?text=${encodeURIComponent(txt)}&room=${roomName}`, {mode:'no-cors'});
+                };
+                aiRec.start();
+            } else if(aiRec) { aiRec.stop(); }
+        }
+
+        // --- 4. HOST ACTIONS ---
+        function downloadAttendance() {
+            const users = api.getParticipantsInfo().map(p => p.displayName).join('\n');
+            const blob = new Blob([`NGI Session: ${roomName}\n\nParticipants:\n${users || "Host Only"}`], {type: "text/plain"});
+            const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "attendance.txt"; a.click();
+        }
+
+        function endSessionForAll() {
+            if(confirm("DANGER: This kicks everyone out and closes the room permanently. Proceed?")) {
+                api.executeCommand('endConference');
+                setTimeout(() => { window.location.href = BLOGGER_URL; }, 1000);
+            }
+        }
+
+        // --- 5. THE PAYWALL TIMER LOGIC ---
+        function startEngineTimer(mins) {
+            let seconds = mins * 60;
+            const display = document.getElementById('timer-display');
+            const countdown = setInterval(() => {
+                const m = Math.floor(seconds / 60); const s = seconds % 60;
+                display.innerText = `SESSION TIMER: ${m}:${s < 10 ? '0' : ''}${s}`;
+                
+                // Visual warning
+                if(seconds === 60) { display.style.background = "#b91c1c"; }
+                
+                if (seconds <= 0) {
+                    clearInterval(countdown); 
+                    api.executeCommand('endConference'); 
+                    setTimeout(() => { alert("Session Expired."); window.location.href = BLOGGER_URL; }, 1000);
+                }
+                seconds--;
+            }, 1000);
+        }
+
+        // --- 6. DRAGGABLE PANELS LOGIC ---
+        function drag(e) {
+            const p = e.parentElement;
+            e.onmousedown = (ev) => {
+                let x=ev.clientX, y=ev.clientY;
+                document.onmouseup = () => { document.onmouseup=null; document.onmousemove=null; };
+                document.onmousemove = (ev2) => {
+                    p.style.top = (p.offsetTop - (y-ev2.clientY)) + "px"; p.style.left = (p.offsetLeft - (x-ev2.clientX)) + "px";
+                    x=ev2.clientX; y=ev2.clientY;
+                };
+            };
+        }
+    </script>
+</body>
+</html>
