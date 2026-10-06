@@ -6,7 +6,7 @@
   <title>N-Meet | Free Edition</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   
-  <!-- Reverted to Official Jitsi Server -->
+  <!-- Official Jitsi Server -->
   <script src="https://meet.jit.si/external_api.js"></script>
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
@@ -55,7 +55,7 @@
     
     .action-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px; margin-bottom: 50px; }
     .card { background: var(--bg-panel); border: 1px solid var(--border-subtle); padding: 30px; border-radius: 20px; cursor: pointer; transition: 0.3s; position: relative; overflow: hidden; }
-    .card:hover { border-color: var(--brand-blue); transform: translateY(-5px); box-shadow: 0 10px 30px rgba(0,0,0,0.4); }
+    .card:hover { border-color: var(--brand-blue); transform: translateY(-5px); box-shadow: 0 10px 30px rgba(59, 130, 246, 0.1); }
     .card-icon { width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 28px; margin-bottom: 20px; }
     .bg-blue { background: rgba(59, 130, 246, 0.1); color: var(--brand-blue); }
     .bg-gray { background: rgba(255, 255, 255, 0.05); color: var(--text-main); }
@@ -260,10 +260,10 @@
       <p>Update your details. Your scheduled meetings are saved locally based on this email.</p>
       
       <span class="input-label">Display Name</span>
-      <input type="text" id="setUserName" class="modal-input" placeholder="e.g. CEO Nithin">
+      <input type="text" id="setUserName" class="modal-input" placeholder="e.g. Nithin">
       
       <span class="input-label">Email Address</span>
-      <input type="email" id="setUserEmail" class="modal-input" placeholder="e.g. admin@nmeet.com">
+      <input type="email" id="setUserEmail" class="modal-input" placeholder="e.g. free@nmeet.com">
 
       <div class="modal-actions">
         <button class="btn-modal btn-cancel" onclick="closeModals()">Cancel</button>
@@ -467,6 +467,8 @@
             resolution: 720,
             startWithAudioMuted: true,
             startWithVideoMuted: false,
+            prejoinPageEnabled: false,
+            prejoinConfig: { enabled: false }, // Force Bypass Prejoin UI
             disableModeratorIndicator: true
           },
           interfaceConfigOverwrite: {
